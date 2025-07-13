@@ -65,22 +65,45 @@ const MyProperties = () => {
   };
 
   const handleEditOpen = (property) => {
-    setEditData(property);
+    setEditData({
+      ...property,
+      image: null, // for file input
+    });
   };
 
   const handleEditChange = (e) => {
-    setEditData({ ...editData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setEditData((prev) => ({ ...prev, image: file }));
   };
 
   const handleEditSubmit = async () => {
     try {
-      await API.put(`/properties/${editData._id}`, editData);
-      setEditData(null);
+      const formData = new FormData();
+      formData.append("title", editData.title);
+      formData.append("description", editData.description);
+      formData.append("location", editData.location);
+      formData.append("price", editData.price);
+
+      if (editData.image) {
+        formData.append("image", editData.image);
+      }
+
+      await API.put(`/properties/${editData._id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       setSnackbar({
         open: true,
         message: "Property updated successfully!",
         severity: "success",
       });
+
+      setEditData(null);
       fetchMyProperties();
     } catch (err) {
       setSnackbar({
@@ -184,14 +207,25 @@ const MyProperties = () => {
               value={editData?.price || ""}
               onChange={handleEditChange}
             />
-            <TextField
+            <Button
+              component="label"
+              variant="outlined"
               fullWidth
-              margin="dense"
-              label="Image URL"
-              name="imageUrl"
-              value={editData?.imageUrl || ""}
-              onChange={handleEditChange}
-            />
+              sx={{ mt: 2 }}
+            >
+              Upload New Image
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </Button>
+            {editData?.image && (
+              <Typography variant="body2" mt={1}>
+                Selected: {editData.image.name}
+              </Typography>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditData(null)}>Cancel</Button>

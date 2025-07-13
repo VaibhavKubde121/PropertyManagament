@@ -1,7 +1,11 @@
 const Property = require('../models/Property');
+const path = require('path');
+const fs = require('fs');
 
 exports.createProperty = async (req, res) => {
-  const { title, description, location, price, imageUrl } = req.body;
+  const { title, description, location, price } = req.body;
+  const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
+
   try {
     const newProperty = await Property.create({
       user: req.user._id,
@@ -9,8 +13,9 @@ exports.createProperty = async (req, res) => {
       description,
       location,
       price,
-      imageUrl,
+      imageUrl: imagePath,
     });
+
     res.status(201).json(newProperty);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -22,11 +27,11 @@ exports.getAllProperties = async (req, res) => {
     const { search } = req.query;
     const query = search
       ? {
-          $or: [
-            { title: { $regex: search, $options: 'i' } },
-            { location: { $regex: search, $options: 'i' } },
-          ],
-        }
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { location: { $regex: search, $options: 'i' } },
+        ],
+      }
       : {};
 
     const properties = await Property.find(query).populate('user', 'name email');
@@ -45,6 +50,14 @@ exports.deleteProperty = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this property' });
     }
 
+    // Delete the associated image file (optional)
+    if (property.imageUrl) {
+      const imagePath = path.join(__dirname, '..', 'public', property.imageUrl);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
     await Property.findByIdAndDelete(req.params.id);
     res.json({ message: 'Property removed' });
   } catch (err) {
@@ -52,7 +65,6 @@ exports.deleteProperty = async (req, res) => {
   }
 };
 
-// Bonus Section
 exports.updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
@@ -62,12 +74,23 @@ exports.updateProperty = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this property' });
     }
 
-    const { title, description, location, price, imageUrl } = req.body;
+    const { title, description, location, price } = req.body;
+
+    // If new image uploaded, remove the old one
+    if (req.file) {
+      if (property.imageUrl) {
+        const oldImagePath = path.join(__dirname, '..', 'public', property.imageUrl);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      property.imageUrl = `/uploads/${req.file.filename}`;
+    }
+
     property.title = title || property.title;
     property.description = description || property.description;
     property.location = location || property.location;
     property.price = price || property.price;
-    property.imageUrl = imageUrl || property.imageUrl;
 
     const updated = await property.save();
     res.json(updated);
