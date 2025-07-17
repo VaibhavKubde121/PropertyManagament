@@ -13,7 +13,9 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useState } from "react";
 
-const BASE_URL = "http://localhost:3000"; // Use your deployed URL on production
+const BASE_URL = "https://propertymanagament-1bjv.onrender.com/api";
+// const BASE_URL = "http://localhost:3000";
+ // Use your deployed URL on production
 
 const PropertyCard = ({ property, showActions = false, onDelete, onEdit }) => {
   const [openZoom, setOpenZoom] = useState(false);

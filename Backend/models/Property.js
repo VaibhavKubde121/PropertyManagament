@@ -27,9 +27,8 @@ const propertySchema = new mongoose.Schema(
       min: 0,
     },
     imageUrl: {
-      // This stores the relative path: "/uploads/filename.jpg"
       type: String,
-      default: '', // Optional: use a fallback path on frontend if empty
+      default: '',
     },
   },
   {
